@@ -4,6 +4,11 @@ import './App.css';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { GlobalStyles } from '@mui/material';
+import NavBar from './components/NavBar';
+import Home from './pages/home/Home'
+import MyNotes from './pages/myNotes/myNotes';
+import PublicNotes from './pages/publicNotes/publicNotes';
+import NoteDetails from './pages/noteDetails/noteDetails';
 
 function App() {
 
@@ -29,11 +34,15 @@ function App() {
         <GlobalStyles styles={{
             body: { backgroundColor: '#152828'},
           }}/>
-        <Routes>
-          <Route index/>
-          <Route element={<ProtectedRoute/>}>
-          </Route>
-        </Routes>
+        <NavBar/>
+          <Routes>
+            <Route index element={<Home/>}/>
+            <Route element={<ProtectedRoute/>}>
+              <Route path='/myNotes' element={<MyNotes/>}/>
+              <Route path='/publicNotes' element={<PublicNotes/>}/>
+              <Route path='/note/:id' element={<NoteDetails/>}/>
+            </Route>
+          </Routes>
       </ThemeProvider>
     </>
   );
