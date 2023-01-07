@@ -12,7 +12,6 @@ export const backendApi = (url) => {
   client.interceptors.response.use(response => {
     return response;
   }, function (error) {
-    console.log('An error occurred while calling backend', error)
     if (error.response.status === 404) {
       return {status: error.response.status};
     }

@@ -2,11 +2,12 @@ package pl.edu.pw.PAMiW.backend.controllers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Not;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pl.edu.pw.PAMiW.backend.entities.Note;
+import pl.edu.pw.PAMiW.backend.services.HashingService;
 import pl.edu.pw.PAMiW.backend.services.NoteService;
+import pl.edu.pw.PAMiW.backend.utils.RequestForNote;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,10 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NoteController {
     private final NoteService noteService;
-
     @GetMapping
-    Collection<Note> findAll() {
-        return noteService.findAll();
+    Collection<Long> findAllPublicNotesIds() {
+        return noteService.findAllPublicNotes().stream().map(Note::getId).toList();
     }
 
     @PostMapping
@@ -29,23 +29,20 @@ public class NoteController {
         return noteService.save(note);
     }
 
-    @GetMapping("/{id}")
-    Note findById(@PathVariable Long id) {
-        return noteService.findById(id);
-    }
-
-    @PutMapping("/{id}")
-    Note update(@PathVariable Long id, @RequestBody Note note) {
-        return noteService.update(id, note);
-    }
-
-    @DeleteMapping("/{id}")
-    void deleteById(@PathVariable Long id) {
-        noteService.deleteById(id);
+    @PostMapping("/id")
+    String getNoteContentById(@RequestBody RequestForNote requestForNote) {
+        return noteService.findById(requestForNote.getId(),
+                requestForNote.getKeycloakId(), requestForNote.getPassword());
     }
 
     @GetMapping("/user/{keycloakId}")
-    List<Note> getUserNotes(@PathVariable String keycloakId) {
-        return noteService.findAllNotesOfUser(keycloakId);
+    List<Long> getUserNotesIds(@PathVariable String keycloakId) {
+        return noteService.findAllNotesOfUser(keycloakId).stream().map(Note::getId).toList();
     }
+
+    @GetMapping("/protected/{id}")
+    Boolean checkIfProtected(@PathVariable Long id) {
+        return noteService.checkIfProtected(id);
+    }
+
 }

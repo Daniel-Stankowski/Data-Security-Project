@@ -25,7 +25,7 @@ public class Note {
 
     private String password;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id", referencedColumnName = "appUser_id")
-    private AppUser owner;
+    private String keycloakId;
+
+    private Boolean isProtected;
 }

@@ -4,27 +4,21 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import pl.edu.pw.PAMiW.backend.entities.AppUser;
 import pl.edu.pw.PAMiW.backend.entities.Note;
 import pl.edu.pw.PAMiW.backend.repositories.NoteRepository;
+import pl.edu.pw.PAMiW.backend.utils.Status;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class NoteService {
     private final NoteRepository noteRepository;
-    private final KeycloakUserService keycloakUserService;
-    private final AppUserService appUserService;
-
+    private final HashingService hashingService;
     public Note save(Note note) {
-        AppUser owner = appUserService.findUserByKeycloakId(note.getOwner().getKeycloak_id());
-        if(owner == null)
-            owner = appUserService.save(AppUser.builder().username(keycloakUserService.getUsernameFromId(note.getOwner()
-                    .getKeycloak_id())).keycloak_id(note.getOwner().getKeycloak_id()).build());
-        note.setOwner(owner);
+        if(note.getIsProtected())
+            note.setPassword(hashingService.getHash(note.getPassword()));
         return noteRepository.save(note);
     }
 
@@ -32,24 +26,45 @@ public class NoteService {
         return noteRepository.findAll();
     }
 
-    public Note findById(Long id) {
-        return noteRepository.findById(id)
+    public String findById(Long id, String keycloakId, String password) {
+        Note note = noteRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
-    }
-
-    public List<Note> findAllNotesOfUser(String keycloak_id) {
-        return noteRepository.findAll().stream()
-                .filter(note -> note.getOwner().getKeycloak_id().equals(keycloak_id)).toList();
-    }
-
-    public void deleteById(Long id) {
-        noteRepository.deleteById(id);
-    }
-
-    public Note update(Long id, Note note) {
-        if (!Objects.equals(id, note.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id and note.id is not equal");
+        if(note.getStatus().equals(Status.PUBLIC) && note.getIsProtected()){
+            String hash = hashingService.getHash(password);
+            if(hashingService.verifyPassword(password, note.getPassword())){
+                return note.getNote();
+            } else {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+            }
+        } else if(note.getStatus().equals(Status.PRIVATE) && !note.getIsProtected()) {
+            if(keycloakId.equals(note.getKeycloakId())) {
+                return note.getNote();
+            } else {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+            }
+        } else if(note.getStatus().equals(Status.PRIVATE) && note.getIsProtected()) {
+            String hash = hashingService.getHash(password);
+            if(keycloakId.equals(note.getKeycloakId()) && hashingService.verifyPassword(password, note.getPassword())) {
+                return note.getNote();
+            } else {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized");
+            }
+        } else {
+            return note.getNote();
         }
-        return noteRepository.save(note);
+    }
+
+    public List<Note> findAllNotesOfUser(String keycloakId) {
+        return noteRepository.findAll().stream()
+                .filter(note -> note.getKeycloakId().equals(keycloakId)).toList();
+    }
+
+    public List<Note> findAllPublicNotes() {
+        return noteRepository.findAll().stream().filter( note -> note.getStatus().equals(Status.PUBLIC)).toList();
+    }
+
+    public Boolean checkIfProtected(Long id) {
+        return noteRepository.findById(id).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found")).getIsProtected();
     }
 }

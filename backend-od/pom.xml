@@ -46,6 +46,12 @@
 			<artifactId>keycloak-admin-client</artifactId>
 			<version>20.0.1</version>
 		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk15on</artifactId>
+			<version>1.64</version>
+		</dependency>
+
 
 
 		<dependency>
