@@ -12,6 +12,7 @@ RUN npm run build
 FROM nginx:1.22.1-alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY certs /etc/nginx/certs
 COPY --from=builder /app/build /usr/share/nginx/html
 
 CMD ["nginx", "-g", "daemon off;"]
